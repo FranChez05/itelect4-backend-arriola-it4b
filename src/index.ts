@@ -34,6 +34,27 @@ app.use("/api/bookings", bookingsRouter);
 // Lab demo alias: /api/submissions routes to bookings
 app.use("/api/submissions", bookingsRouter);
 
+// Courts facility directory
+const defaultCourts = [
+  { id: 1, name: "Court A - Main Arena", location: "Main Gym (Wood Floor)", isAvailable: true },
+  { id: 2, name: "Court B - Side Arena", location: "Main Gym (Rubber Floor)", isAvailable: true },
+  { id: 3, name: "Court C - VIP Hall", location: "VIP Complex (AC Room)", isAvailable: false },
+  { id: 4, name: "Court D - Outdoor Arena", location: "East Annex (Synthetics)", isAvailable: true },
+];
+
+app.get(["/api/courts", "/courts"], (_req, res) => {
+  res.json(defaultCourts);
+});
+
+app.get(["/api/courts/:id", "/courts/:id"], (req, res) => {
+  const court = defaultCourts.find((c) => c.id === Number(req.params.id));
+  if (!court) {
+    res.status(404).json({ error: "Court not found" });
+    return;
+  }
+  res.json(court);
+});
+
 // Health check
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", message: "Badminton Booking API is online" });
