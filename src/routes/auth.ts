@@ -35,9 +35,21 @@ router.post("/register", async (req: Request, res: Response): Promise<void> => {
       email: newUser.email,
       role: newUser.role,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Register error:", error);
-    res.status(500).json({ error: "Internal server error during registration" });
+
+    if (error?.name === "ValidationError") {
+      res.status(400).json({ error: error.message || "Invalid registration payload" });
+      return;
+    }
+
+    if (error?.code === 11000) {
+      res.status(409).json({ error: "That email is already registered" });
+      return;
+    }
+
+    const message = process.env.NODE_ENV === "development" ? error?.message || "Internal server error during registration" : "Internal server error during registration";
+    res.status(500).json({ error: message });
   }
 });
 

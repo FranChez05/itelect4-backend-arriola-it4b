@@ -27,6 +27,20 @@ if (!MONGODB_URI) {
 app.use(cors());
 app.use(express.json());
 
+// Root route
+app.get("/", (_req, res) => {
+  res.json({
+    status: "ok",
+    message: "ITELECT4 Badminton Booking API is running!",
+    endpoints: {
+      health: "/api/health",
+      courts: "/api/courts",
+      bookings: "/api/bookings",
+      auth: "/api/auth",
+    },
+  });
+});
+
 // Routes
 app.use("/api/auth", authRouter);
 app.use("/api/bookings", bookingsRouter);
