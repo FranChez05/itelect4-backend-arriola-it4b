@@ -1,8 +1,9 @@
 import "dotenv/config";
 import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
+import mongoose from "mongoose";
 import { connectDatabase } from "./config/database";
-import { authRouter, bookingsRouter } from "./routes";
+import { authRouter, bookingsRouter, courtsRouter } from "./routes";
 
 const app = express();
 
@@ -51,31 +52,15 @@ app.get("/", (_req: Request, res: Response) => {
   });
 });
 
-// Health check route
+// Health check route - verifies database connection status
 app.get("/api/health", (_req: Request, res: Response) => {
-  res.json({ status: "ok", message: "Badminton Booking API is online" });
+  const isDbConnected = mongoose.connection.readyState === 1;
+  res.json({ status: "ok", db: isDbConnected });
 });
 
-// Courts facility directory
-const defaultCourts = [
-  { id: 1, name: "Court A - Main Arena", location: "Main Gym (Wood Floor)", isAvailable: true },
-  { id: 2, name: "Court B - Side Arena", location: "Main Gym (Rubber Floor)", isAvailable: true },
-  { id: 3, name: "Court C - VIP Hall", location: "VIP Complex (AC Room)", isAvailable: false },
-  { id: 4, name: "Court D - Outdoor Arena", location: "East Annex (Synthetics)", isAvailable: true },
-];
-
-app.get(["/api/courts", "/courts"], (_req: Request, res: Response) => {
-  res.json(defaultCourts);
-});
-
-app.get(["/api/courts/:id", "/courts/:id"], (req: Request, res: Response) => {
-  const court = defaultCourts.find((c) => c.id === Number(req.params.id));
-  if (!court) {
-    res.status(404).json({ error: "Court not found" });
-    return;
-  }
-  res.json(court);
-});
+// Reference resource routes: Courts (public GET routes querying MongoDB)
+app.use("/api/courts", courtsRouter);
+app.use("/courts", courtsRouter);
 
 // API Routes
 app.use("/api/auth", authRouter);
