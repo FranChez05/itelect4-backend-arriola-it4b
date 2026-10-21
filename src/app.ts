@@ -47,7 +47,8 @@ app.get("/", (_req: Request, res: Response) => {
       health: "/api/health",
       courts: "/api/courts",
       bookings: "/api/bookings",
-      auth: "/api/auth",
+      register: "/api/auth/register",
+      login: "/api/auth/login",
     },
   });
 });
