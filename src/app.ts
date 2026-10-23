@@ -73,4 +73,22 @@ app.use("/api/auth", authRouter);
 app.use("/api/bookings", bookingsRouter);
 app.use("/api/submissions", bookingsRouter);
 
+// 404 catch-all handler for unmatched routes
+app.use((_req: Request, res: Response) => {
+  res.status(404).json({
+    error: "Not Found",
+    message: `Route ${_req.method} ${_req.originalUrl} not found`,
+  });
+});
+
+// Global error handler
+app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
+  console.error("Unhandled error:", err);
+  res.status(500).json({
+    error: "Internal Server Error",
+    message: process.env.NODE_ENV === "development" ? err.message : "Something went wrong",
+  });
+});
+
 export default app;
+
