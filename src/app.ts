@@ -3,7 +3,7 @@ import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import mongoose from "mongoose";
 import { connectDatabase } from "./config/database";
-import { authRouter, bookingsRouter, courtsRouter } from "./routes";
+import { authRouter, bookingsRouter, courtsRouter, aiRouter } from "./routes";
 
 const app = express();
 
@@ -72,6 +72,7 @@ app.use("/courts", courtsRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/bookings", bookingsRouter);
 app.use("/api/submissions", bookingsRouter);
+app.use("/api/ai", aiRouter);
 
 // 404 catch-all handler for unmatched routes
 app.use((_req: Request, res: Response) => {
