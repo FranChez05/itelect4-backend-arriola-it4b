@@ -1,0 +1,53 @@
+import { Router, type Request, type Response } from "express";
+import { rateLimit } from "express-rate-limit";
+import { requireAuth } from "../middleware/auth";
+import { aiRequestSchema } from "../schemas/review";
+import { AiReplyError, answerPlayerQuestions } from "../ai/gemini";
+
+const router = Router();
+router.use(requireAuth);
+
+const aiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 5,
+  keyGenerator: (req: Request) => req.userId || "unauthenticated",
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: { message: "Five AI answers a minute is the limit. Try again shortly." },
+});
+router.use(aiLimiter);
+
+router.post("/", async (req: Request, res: Response): Promise<void> => {
+  const parsed = aiRequestSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ message: "Validation failed", errors: parsed.error.issues.map((issue) => issue.message) });
+    return;
+  }
+
+  try {
+    res.status(200).json(await answerPlayerQuestions(parsed.data.prompt));
+  } catch (error) {
+    const errorStatus = typeof error === "object" && error !== null && "status" in error
+      ? Number((error as { status?: unknown }).status)
+      : undefined;
+    if (errorStatus === 429 || (error instanceof Error && /quota|resource_exhausted/i.test(error.message))) {
+      res.status(429).json({ message: "The AI quota is used up for now. Try again later." });
+      return;
+    }
+    if (errorStatus === 503) {
+      res.status(503).json({ message: "Gemini is temporarily busy. Please try your question again in a moment." });
+      return;
+    }
+    console.error("Player AI question failed:", error);
+    if (error instanceof Error && error.message === "GEMINI_API_KEY is missing.") {
+      res.status(500).json({ message: "Gemini is not configured on the server yet." });
+      return;
+    }
+    const message = error instanceof AiReplyError
+      ? "Gemini returned an unusable answer. Please try again."
+      : "Gemini could not answer that right now. Please try again.";
+    res.status(502).json({ message });
+  }
+});
+
+export default router;

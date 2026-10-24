@@ -55,4 +55,5 @@ export function authMiddleware(
   }
 }
 
+export const requireAuth = authMiddleware;
 export default authMiddleware;
