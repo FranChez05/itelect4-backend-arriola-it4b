@@ -1,11 +1,11 @@
 import { Router, type Request, type Response } from "express";
 import { rateLimit } from "express-rate-limit";
-import { authMiddleware } from "../middleware/auth";
+import { requireAuth } from "../middleware/auth";
 import { aiRequestSchema } from "../schemas/review";
-import { AiReplyError, reviewProject } from "../ai/gemini";
+import { AiReplyError, answerPlayerQuestions } from "../ai/gemini";
 
 const router = Router();
-router.use(authMiddleware);
+router.use(requireAuth);
 
 const aiLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -13,7 +13,7 @@ const aiLimiter = rateLimit({
   keyGenerator: (req: Request) => req.userId || "unauthenticated",
   standardHeaders: "draft-8",
   legacyHeaders: false,
-  message: { message: "Five AI reviews a minute is the limit. Try again shortly." },
+  message: { message: "Five AI answers a minute is the limit. Try again shortly." },
 });
 router.use(aiLimiter);
 
@@ -25,7 +25,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    res.status(200).json(await reviewProject(parsed.data.prompt));
+    res.status(200).json(await answerPlayerQuestions(parsed.data.prompt));
   } catch (error) {
     const errorStatus = typeof error === "object" && error !== null && "status" in error
       ? Number((error as { status?: unknown }).status)
@@ -35,17 +35,17 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       return;
     }
     if (errorStatus === 503) {
-      res.status(503).json({ message: "Gemini is temporarily busy. Please try your review again in a moment." });
+      res.status(503).json({ message: "Gemini is temporarily busy. Please try your question again in a moment." });
       return;
     }
-    console.error("AI review failed:", error);
+    console.error("Player AI question failed:", error);
     if (error instanceof Error && error.message === "GEMINI_API_KEY is missing.") {
-      res.status(500).json({ message: "AI review is not configured on the server yet." });
+      res.status(500).json({ message: "Gemini is not configured on the server yet." });
       return;
     }
     const message = error instanceof AiReplyError
-      ? "The AI service returned an unusable review. Please try again."
-      : "The AI service did not answer properly. Please try again.";
+      ? "Gemini returned an unusable answer. Please try again."
+      : "Gemini could not answer that right now. Please try again.";
     res.status(502).json({ message });
   }
 });

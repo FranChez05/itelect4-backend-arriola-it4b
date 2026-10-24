@@ -1,5 +1,5 @@
 import { GoogleGenAI, type Content } from "@google/genai";
-import { reviewSchema, reviewJsonSchema, type AiReview } from "../schemas/review";
+import { aiReplySchema, aiReplyJsonSchema, type AiReply } from "../schemas/review";
 import { EXAMPLES, MODEL, SYSTEM_PROMPT, wrap } from "./prompt";
 
 export class AiReplyError extends Error {
@@ -16,24 +16,24 @@ function getClient(): GoogleGenAI {
   return client;
 }
 
-function buildContents(prompt: string): Content[] {
+function buildContents(playerQuestion: string): Content[] {
   const contents: Content[] = [];
   for (const example of EXAMPLES) {
-    contents.push({ role: "user", parts: [{ text: wrap(example.description) }] });
-    contents.push({ role: "model", parts: [{ text: JSON.stringify(example.review) }] });
+    contents.push({ role: "user", parts: [{ text: wrap(example.question) }] });
+    contents.push({ role: "model", parts: [{ text: JSON.stringify(example.reply) }] });
   }
-  contents.push({ role: "user", parts: [{ text: wrap(prompt) }] });
+  contents.push({ role: "user", parts: [{ text: wrap(playerQuestion) }] });
   return contents;
 }
 
-export async function reviewProject(prompt: string): Promise<AiReview> {
+export async function answerPlayerQuestions(prompt: string): Promise<AiReply> {
   const response = await getClient().models.generateContent({
     model: MODEL,
     contents: buildContents(prompt),
     config: {
       systemInstruction: SYSTEM_PROMPT,
       responseMimeType: "application/json",
-      responseJsonSchema: reviewJsonSchema,
+      responseJsonSchema: aiReplyJsonSchema,
     },
   });
   const text = response.text;
@@ -44,7 +44,7 @@ export async function reviewProject(prompt: string): Promise<AiReview> {
   } catch {
     throw new AiReplyError("Gemini returned invalid JSON.");
   }
-  const parsed = reviewSchema.safeParse(decoded);
-  if (!parsed.success) throw new AiReplyError("Gemini's reply did not match the review schema.");
+  const parsed = aiReplySchema.safeParse(decoded);
+  if (!parsed.success) throw new AiReplyError("Gemini's reply did not match the player answer schema.");
   return parsed.data;
 }
