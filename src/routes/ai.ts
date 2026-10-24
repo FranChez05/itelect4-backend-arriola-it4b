@@ -34,6 +34,10 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       res.status(429).json({ message: "The AI quota is used up for now. Try again later." });
       return;
     }
+    if (errorStatus === 503) {
+      res.status(503).json({ message: "Gemini is temporarily busy. Please try your review again in a moment." });
+      return;
+    }
     console.error("AI review failed:", error);
     if (error instanceof Error && error.message === "GEMINI_API_KEY is missing.") {
       res.status(500).json({ message: "AI review is not configured on the server yet." });

@@ -1,6 +1,8 @@
 import type { AiReview } from "../schemas/review";
 
-export const MODEL = "gemini-2.5-flash";
+// Gemini 2.5 Flash is restricted for new API users. Use the current stable
+// Flash model, which supports structured JSON output used by AI Review.
+export const MODEL = "gemini-3.6-flash";
 
 export function wrap(description: string): string {
   return `<submission>\n${description}\n</submission>`;
