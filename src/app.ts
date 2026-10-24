@@ -4,6 +4,7 @@ import cors from "cors";
 import mongoose from "mongoose";
 import { connectDatabase } from "./config/database";
 import { authRouter, bookingsRouter, courtsRouter, aiRouter } from "./routes";
+import adminUsersRouter from "./routes/adminUsers";
 
 const app = express();
 
@@ -34,7 +35,11 @@ app.use(
 app.use(express.json());
 
 // Database connection middleware before handling API routes
-app.use(async (_req: Request, _res: Response, next: NextFunction) => {
+app.use(async (req: Request, _res: Response, next: NextFunction) => {
+  if (req.path === "/api/ai" || req.path.startsWith("/api/ai/")) {
+    next();
+    return;
+  }
   try {
     await connectDatabase();
     next();
@@ -71,6 +76,8 @@ app.use("/courts", courtsRouter);
 // API Routes
 app.use("/api/auth", authRouter);
 app.use("/api/bookings", bookingsRouter);
+app.use("/api/admin/bookings", bookingsRouter);
+app.use("/api/admin/users", adminUsersRouter);
 app.use("/api/submissions", bookingsRouter);
 app.use("/api/ai", aiRouter);
 
