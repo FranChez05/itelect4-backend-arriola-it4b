@@ -1,6 +1,6 @@
 import { GoogleGenAI, type Content } from "@google/genai";
 import { reviewSchema, reviewJsonSchema, type AiReview } from "../schemas/review";
-import { EXAMPLES, MODEL, SYSTEM_PROMPT, wrap } from "./prompt";
+import { EXAMPLES, FALLBACK_MODEL, MODEL, SYSTEM_PROMPT, wrap } from "./prompt";
 
 export class AiReplyError extends Error {
   constructor(message: string) {
@@ -26,9 +26,17 @@ function buildContents(description: string): Content[] {
   return contents;
 }
 
-export async function reviewProject(prompt: string): Promise<AiReview> {
+function shouldTryFallback(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const candidate = error as { status?: unknown; statusCode?: unknown; message?: unknown };
+  const status = Number(candidate.status ?? candidate.statusCode);
+  return status === 503 || status === 404 ||
+    (typeof candidate.message === "string" && /UNAVAILABLE|SERVICE_UNAVAILABLE|model .*not found/i.test(candidate.message));
+}
+
+async function generateReview(model: string, prompt: string): Promise<string | undefined> {
   const response = await getClient().models.generateContent({
-    model: MODEL,
+    model,
     contents: buildContents(prompt),
     config: {
       systemInstruction: SYSTEM_PROMPT,
@@ -36,7 +44,18 @@ export async function reviewProject(prompt: string): Promise<AiReview> {
       responseJsonSchema: reviewJsonSchema,
     },
   });
-  const text = response.text;
+  return response.text;
+}
+
+export async function reviewProject(prompt: string): Promise<AiReview> {
+  let text: string | undefined;
+  try {
+    text = await generateReview(MODEL, prompt);
+  } catch (error) {
+    if (!shouldTryFallback(error)) throw error;
+    console.warn(`Gemini model ${MODEL} unavailable; retrying with ${FALLBACK_MODEL}.`);
+    text = await generateReview(FALLBACK_MODEL, prompt);
+  }
   if (!text) throw new AiReplyError("Gemini returned an empty reply.");
   let decoded: unknown;
   try {
