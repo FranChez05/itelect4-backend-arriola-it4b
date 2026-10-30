@@ -1,5 +1,7 @@
 # Badminton Court Booking System - Backend API
 
+[![CI](https://github.com/FranChez05/itelect4-backend-arriola-it4b/actions/workflows/ci.yml/badge.svg?branch=GT6-Tests-Arriola)](https://github.com/FranChez05/itelect4-backend-arriola-it4b/actions/workflows/ci.yml)
+
 A RESTful backend API for managing badminton court reservations and player authentication, built with **Express 5**, **TypeScript**, **MongoDB (Mongoose)**, and **JWT**.
 
 ---
