@@ -1,18 +1,15 @@
 import { z } from "zod";
 
 export const aiRequestSchema = z.object({
-  prompt: z.string().trim().min(20, "Ask a player question in at least 20 characters.").max(2000, "Keep the question under 2000 characters."),
+  prompt: z.string().trim().min(20, "Describe your booking app in at least 20 characters.").max(2000, "Keep the description under 2000 characters."),
 });
 
-export const aiTopicSchema = z.enum(["booking", "availability", "account", "admin", "mixed", "other"]);
-
-export const aiReplySchema = z.object({
-  topic: aiTopicSchema.describe("The main BAMICOURT topic addressed by the player's question."),
-  answers: z.array(z.object({
-    question: z.string().min(1).describe("One distinct question from the player's message."),
-    answer: z.string().min(1).describe("A direct, accurate answer to that question."),
-  })).min(1).describe("A separate answer for every distinct player question, kept in the order asked."),
+export const reviewSchema = z.object({
+  summary: z.string().min(1).describe("One sentence summarizing how the described badminton booking app works."),
+  strengths: z.array(z.string().min(1)).min(1).max(3).describe("Specific strengths demonstrated by the booking app description."),
+  improvements: z.array(z.string().min(1)).min(1).max(3).describe("Concrete improvements for the booking app, prioritized for players and facility admins."),
+  readiness: z.enum(["ready", "almost", "not-yet"]).describe("How ready the booking app is for real users based only on the details provided."),
 });
 
-export type AiReply = z.infer<typeof aiReplySchema>;
-export const aiReplyJsonSchema = z.toJSONSchema(aiReplySchema);
+export type AiReview = z.infer<typeof reviewSchema>;
+export const reviewJsonSchema = z.toJSONSchema(reviewSchema);
