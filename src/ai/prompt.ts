@@ -1,8 +1,9 @@
 import type { AiReview } from "../schemas/review";
 
 // Gemini Flash supports structured JSON output used by the booking readiness review.
-export const MODEL = "gemini-3.8-flash";
-export const FALLBACK_MODEL = "gemini-3.6-flash";
+// Keep the previously working, fast model first; use the newer stable model as fallback.
+export const MODEL = "gemini-3.6-flash";
+export const FALLBACK_MODEL = "gemini-3.8-flash";
 
 export function wrap(description: string): string {
   return `<submission>\n${description}\n</submission>`;

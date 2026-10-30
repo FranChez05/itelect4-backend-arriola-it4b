@@ -52,8 +52,8 @@ describe("Gemini booking review response contract", () => {
 
     await expect(reviewProject("Players can find courts and submit booking requests for review.")).resolves.toEqual(review);
     expect(gemini.generateContent.mock.calls.map(([request]) => request.model)).toEqual([
-      "gemini-3.8-flash",
       "gemini-3.6-flash",
+      "gemini-3.8-flash",
     ]);
   });
 });

@@ -12,7 +12,16 @@ export class AiReplyError extends Error {
 let client: GoogleGenAI | null = null;
 function getClient(): GoogleGenAI {
   if (!process.env.GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is missing.");
-  if (!client) client = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  if (!client) {
+    client = new GoogleGenAI({
+      apiKey: process.env.GEMINI_API_KEY,
+      httpOptions: {
+        // Keep retries bounded so Vercel can try the fallback model in the same request.
+        timeout: 12_000,
+        retryOptions: { attempts: 1 },
+      },
+    });
+  }
   return client;
 }
 
