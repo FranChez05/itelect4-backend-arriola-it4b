@@ -56,4 +56,22 @@ describe("Gemini booking review response contract", () => {
       "gemini-3.8-flash",
     ]);
   });
+
+  it("retries with the fallback model when the primary model quota is exhausted", async () => {
+    const review = {
+      summary: "Players can book available courts and admins review requests.",
+      strengths: ["The booking flow is clear."],
+      improvements: ["Explain how schedule conflicts are prevented."],
+      readiness: "almost",
+    };
+    gemini.generateContent
+      .mockRejectedValueOnce(Object.assign(new Error("RESOURCE_EXHAUSTED: daily quota exceeded"), { status: 429 }))
+      .mockResolvedValueOnce({ text: JSON.stringify(review) });
+
+    await expect(reviewProject("Players can find courts and submit booking requests for review.")).resolves.toEqual(review);
+    expect(gemini.generateContent.mock.calls.map(([request]) => request.model)).toEqual([
+      "gemini-3.6-flash",
+      "gemini-3.8-flash",
+    ]);
+  });
 });
