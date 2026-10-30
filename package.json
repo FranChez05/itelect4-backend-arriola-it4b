@@ -9,7 +9,7 @@
     "start": "node dist/index.js",
     "seed": "tsx scripts/seed.ts",
     "generate-secret": "node scripts/generate-secret.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "vitest run --reporter=verbose"
   },
   "keywords": [],
   "author": "",
@@ -31,7 +31,10 @@
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^26.6.4",
+    "@types/supertest": "^7.2.1",
+    "supertest": "^7.3.1",
     "tsx": "^4.23.15",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5"
   }
 }

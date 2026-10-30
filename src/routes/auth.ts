@@ -8,25 +8,31 @@ const router = Router();
 // POST /api/auth/register - Register once per database. Email uniqueness enforced.
 router.post("/register", async (req: Request, res: Response): Promise<void> => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password } = req.body;
 
-    if (!name || !email || !password) {
-      res.status(400).json({ error: "Name, email, and password are required" });
+    if (
+      typeof name !== "string" || name.trim().length < 2 || name.trim().length > 50 ||
+      typeof email !== "string" || !/^\S+@\S+\.\S+$/.test(email.trim()) ||
+      typeof password !== "string" || password.length < 6
+    ) {
+      res.status(400).json({ error: "Name must be 2-50 characters, email must be valid, and password must have at least 6 characters" });
       return;
     }
 
-    const existingUser = await UserModel.findOne({ email: email.toLowerCase().trim() });
+    const normalizedEmail = email.trim().toLowerCase();
+    const existingUser = await UserModel.findOne({ email: normalizedEmail });
     if (existingUser) {
-      res.status(409).send("That email is already registered");
+      res.status(409).json({ error: "That email is already registered" });
       return;
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const newUser = await UserModel.create({
-      name,
-      email: email.toLowerCase().trim(),
+      name: name.trim(),
+      email: normalizedEmail,
       password: hashedPassword,
-      role: role || "player",
+      // Public registration must never grant administrator privileges.
+      role: "player",
     });
 
     res.status(201).json({
@@ -58,12 +64,12 @@ router.post("/login", async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password } = req.body;
 
-    if (!email || !password) {
+    if (typeof email !== "string" || !email.trim() || typeof password !== "string" || !password) {
       res.status(400).json({ error: "Email and password are required" });
       return;
     }
 
-    const user = await UserModel.findOne({ email: email.toLowerCase().trim() });
+    const user = await UserModel.findOne({ email: email.trim().toLowerCase() });
     if (!user) {
       res.status(401).json({ error: "Invalid email or password" });
       return;
@@ -72,6 +78,11 @@ router.post("/login", async (req: Request, res: Response): Promise<void> => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       res.status(401).json({ error: "Invalid email or password" });
+      return;
+    }
+
+    if (user.isActive === false) {
+      res.status(403).json({ error: "This account is inactive. Contact an administrator." });
       return;
     }
 
@@ -87,6 +98,8 @@ router.post("/login", async (req: Request, res: Response): Promise<void> => {
       user: {
         id: user._id,
         role: user.role,
+        name: user.name,
+        email: user.email,
       },
     });
   } catch (error) {
