@@ -231,3 +231,7 @@ Base URL: `http://localhost:4000`
 1. **Keep Secrets Out of Version Control**: Never commit `.env` or sensitive MongoDB credentials to Git. `.gitignore` is pre-configured to exclude `.env` and `node_modules/`.
 2. **JWT Expiration**: Issued tokens are configured to expire in 2 hours (`expiresIn: "2h"`).
 3. **Password Hashing**: Passwords are salted and hashed using `bcryptjs` with 10 salt rounds before persistence.
+# Badminton Court Booking System API
+
+[![CI](https://github.com/FranChez05/itelect4-backend-arriola-it4b/actions/workflows/ci.yml/badge.svg?branch=GT6-Tests-Arriola)](https://github.com/FranChez05/itelect4-backend-arriola-it4b/actions/workflows/ci.yml)
+
