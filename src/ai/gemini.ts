@@ -1,6 +1,6 @@
 import { GoogleGenAI, type Content } from "@google/genai";
-import { aiReplySchema, aiReplyJsonSchema, type AiReply } from "../schemas/review";
-import { EXAMPLES, MODEL, SYSTEM_PROMPT, wrap } from "./prompt";
+import { reviewSchema, reviewJsonSchema, type AiReview } from "../schemas/review";
+import { EXAMPLES, FALLBACK_MODEL, MODEL, SYSTEM_PROMPT, wrap } from "./prompt";
 
 export class AiReplyError extends Error {
   constructor(message: string) {
@@ -12,31 +12,59 @@ export class AiReplyError extends Error {
 let client: GoogleGenAI | null = null;
 function getClient(): GoogleGenAI {
   if (!process.env.GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is missing.");
-  if (!client) client = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  if (!client) {
+    client = new GoogleGenAI({
+      apiKey: process.env.GEMINI_API_KEY,
+      httpOptions: {
+        // Keep retries bounded so Vercel can try the fallback model in the same request.
+        timeout: 12_000,
+        retryOptions: { attempts: 1 },
+      },
+    });
+  }
   return client;
 }
 
-function buildContents(playerQuestion: string): Content[] {
+function buildContents(description: string): Content[] {
   const contents: Content[] = [];
   for (const example of EXAMPLES) {
-    contents.push({ role: "user", parts: [{ text: wrap(example.question) }] });
-    contents.push({ role: "model", parts: [{ text: JSON.stringify(example.reply) }] });
+    contents.push({ role: "user", parts: [{ text: wrap(example.description) }] });
+    contents.push({ role: "model", parts: [{ text: JSON.stringify(example.review) }] });
   }
-  contents.push({ role: "user", parts: [{ text: wrap(playerQuestion) }] });
+  contents.push({ role: "user", parts: [{ text: wrap(description) }] });
   return contents;
 }
 
-export async function answerPlayerQuestions(prompt: string): Promise<AiReply> {
+function shouldTryFallback(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const candidate = error as { status?: unknown; statusCode?: unknown; message?: unknown };
+  const status = Number(candidate.status ?? candidate.statusCode);
+  return status === 503 || status === 404 ||
+    (typeof candidate.message === "string" && /UNAVAILABLE|SERVICE_UNAVAILABLE|model .*not found/i.test(candidate.message));
+}
+
+async function generateReview(model: string, prompt: string): Promise<string | undefined> {
   const response = await getClient().models.generateContent({
-    model: MODEL,
+    model,
     contents: buildContents(prompt),
     config: {
       systemInstruction: SYSTEM_PROMPT,
       responseMimeType: "application/json",
-      responseJsonSchema: aiReplyJsonSchema,
+      responseJsonSchema: reviewJsonSchema,
     },
   });
-  const text = response.text;
+  return response.text;
+}
+
+export async function reviewProject(prompt: string): Promise<AiReview> {
+  let text: string | undefined;
+  try {
+    text = await generateReview(MODEL, prompt);
+  } catch (error) {
+    if (!shouldTryFallback(error)) throw error;
+    console.warn(`Gemini model ${MODEL} unavailable; retrying with ${FALLBACK_MODEL}.`);
+    text = await generateReview(FALLBACK_MODEL, prompt);
+  }
   if (!text) throw new AiReplyError("Gemini returned an empty reply.");
   let decoded: unknown;
   try {
@@ -44,7 +72,7 @@ export async function answerPlayerQuestions(prompt: string): Promise<AiReply> {
   } catch {
     throw new AiReplyError("Gemini returned invalid JSON.");
   }
-  const parsed = aiReplySchema.safeParse(decoded);
-  if (!parsed.success) throw new AiReplyError("Gemini's reply did not match the player answer schema.");
+  const parsed = reviewSchema.safeParse(decoded);
+  if (!parsed.success) throw new AiReplyError("Gemini's reply did not match the booking review schema.");
   return parsed.data;
 }
