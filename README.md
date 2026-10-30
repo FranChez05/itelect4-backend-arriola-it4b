@@ -2,6 +2,10 @@
 
 [![CI](https://github.com/FranChez05/itelect4-backend-arriola-it4b/actions/workflows/ci.yml/badge.svg?branch=GT6-Tests-Arriola)](https://github.com/FranChez05/itelect4-backend-arriola-it4b/actions/workflows/ci.yml)
 
+Frontend Repo: https://github.com/FranChez05/itelect4-project-arriola-it4b Frontend Vercel: https://itelect4-project-arriola-it4b.vercel.app/
+
+Backend Repo: https://github.com/FranChez05/itelect4-backend-arriola-it4b Backend Vercel: https://itelect4-backend-arriola-it4b-pibfr32ny-chesca.vercel.app/
+
 A RESTful backend API for managing badminton court reservations and player authentication, built with **Express 5**, **TypeScript**, **MongoDB (Mongoose)**, and **JWT**.
 
 ---
